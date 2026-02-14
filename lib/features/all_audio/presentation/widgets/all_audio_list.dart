@@ -1,9 +1,8 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:mp3_player_v2/core/data/model/audio_model.dart';
 import 'package:mp3_player_v2/core/logic/player_state.dart';
 import 'package:mp3_player_v2/core/theme/app_colors.dart';
+import 'package:on_audio_query/on_audio_query.dart';
 
 class AllAudioList extends StatelessWidget {
   final PlayerState state;
@@ -32,7 +31,7 @@ class AllAudioList extends StatelessWidget {
     if (state.songs.isEmpty) {
       return Center(
         child: Text(
-          'No audios yet. Tap Add Audio.',
+          'No audios found. Tap Scan Audio to refresh.',
           style: TextStyle(color: colors.textSecondary),
         ),
       );
@@ -56,7 +55,15 @@ class AllAudioList extends StatelessWidget {
             ),
             leading: ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: _buildSongArtwork(context, song.imagePath),
+              child: QueryArtworkWidget(
+                id: song.artworkId,
+                type: ArtworkType.AUDIO,
+                artworkWidth: 44,
+                artworkHeight: 44,
+                artworkFit: BoxFit.cover,
+                keepOldArtwork: true,
+                nullArtworkWidget: _buildArtworkFallback(context),
+              ),
             ),
             title: Text(
               song.title,
@@ -79,32 +86,6 @@ class AllAudioList extends StatelessWidget {
             ),
           ),
         );
-      },
-    );
-  }
-
-  Widget _buildSongArtwork(BuildContext context, String imagePath) {
-    final isAsset = imagePath.startsWith('assets/');
-
-    if (isAsset) {
-      return Image.asset(
-        imagePath,
-        width: 44,
-        height: 44,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) {
-          return _buildArtworkFallback(context);
-        },
-      );
-    }
-
-    return Image.file(
-      File(imagePath),
-      width: 44,
-      height: 44,
-      fit: BoxFit.cover,
-      errorBuilder: (context, error, stackTrace) {
-        return _buildArtworkFallback(context);
       },
     );
   }

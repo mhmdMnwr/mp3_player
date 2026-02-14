@@ -1,11 +1,10 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:mp3_player_v2/core/theme/app_colors.dart';
+import 'package:on_audio_query/on_audio_query.dart';
 
 class AudioImage extends StatefulWidget {
-  final String? imagePath;
-  const AudioImage({super.key, this.imagePath});
+  final int? artworkId;
+  const AudioImage({super.key, this.artworkId});
 
   @override
   State<AudioImage> createState() => _AudioImageState();
@@ -15,8 +14,6 @@ class _AudioImageState extends State<AudioImage> {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final imagePath = widget.imagePath;
-    final useAsset = imagePath == null || imagePath.startsWith('assets/');
 
     return Container(
       width: MediaQuery.of(context).size.width * 0.8,
@@ -33,21 +30,17 @@ class _AudioImageState extends State<AudioImage> {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(20),
-        child: useAsset
-            ? Image.asset(
-                imagePath ?? 'assets/images/podcast.png',
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return _fallbackImage(context);
-                },
+        child: widget.artworkId != null
+            ? QueryArtworkWidget(
+                id: widget.artworkId!,
+                type: ArtworkType.AUDIO,
+                artworkFit: BoxFit.cover,
+                artworkWidth: MediaQuery.of(context).size.width * 0.8,
+                artworkHeight: 260,
+                keepOldArtwork: true,
+                nullArtworkWidget: _fallbackImage(context),
               )
-            : Image.file(
-                File(imagePath),
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return _fallbackImage(context);
-                },
-              ),
+            : _fallbackImage(context),
       ),
     );
   }

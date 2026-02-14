@@ -9,9 +9,11 @@ import 'package:mp3_player_v2/core/logic/player_cubit.dart';
 import 'package:mp3_player_v2/core/logic/player_state.dart';
 import 'package:mp3_player_v2/core/logic/theme_cubit.dart';
 import 'package:mp3_player_v2/features/all_audio/presentation/all_audio_page.dart';
+import 'package:mp3_player_v2/features/download/presentation/download_page.dart';
 import 'package:mp3_player_v2/features/favorite/presentation/favorite_page.dart';
 import 'package:mp3_player_v2/features/player/presentation/player_page.dart';
-import 'package:mp3_player_v2/features/player/presentation/widgets/bottom_navagationbar.dart';
+import 'package:mp3_player_v2/core/widgets/bottom_navagationbar.dart';
+import 'package:mp3_player_v2/main.dart' show audioHandler;
 
 class MainLayout extends StatefulWidget {
   final String? initialSongId;
@@ -32,7 +34,10 @@ class _MainLayoutState extends State<MainLayout> {
   @override
   void initState() {
     super.initState();
-    _playerCubit = PlayerCubit(audioRepo: AudioRepoImpl());
+    _playerCubit = PlayerCubit(
+      audioRepo: AudioRepoImpl(),
+      audioHandler: audioHandler,
+    );
     _playerState = _playerCubit.state;
 
     _playerSubscription = _playerCubit.stream.listen((PlayerState state) {
@@ -68,7 +73,7 @@ class _MainLayoutState extends State<MainLayout> {
       return;
     }
 
-    if (index == 0 || index == 1) {
+    if (index == 0 || index == 1 || index == 3) {
       setState(() {
         _currentIndex = index;
       });
@@ -87,7 +92,7 @@ class _MainLayoutState extends State<MainLayout> {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final titles = ['Playing', 'All Audios', 'Favorites'];
+    final titles = ['Playing', 'All Audios', 'Favorites', 'Downloads'];
     final safeTitleIndex = math.min(_currentIndex, titles.length - 1);
     final themeCubit = context.read<ThemeCubit>();
 
@@ -167,6 +172,7 @@ class _MainLayoutState extends State<MainLayout> {
                   });
                 },
               ),
+              const DownloadPage(),
             ],
           ),
         ),

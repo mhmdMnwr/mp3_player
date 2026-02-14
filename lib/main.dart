@@ -1,10 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mp3_player_v2/core/layout/main_layout.dart';
+import 'package:mp3_player_v2/core/logic/audio_handler.dart';
+import 'package:mp3_player_v2/core/logic/notification_controller.dart';
 import 'package:mp3_player_v2/core/logic/theme_cubit.dart';
 import 'package:mp3_player_v2/core/theme/app_theme.dart';
 
-void main() {
+late final AppAudioHandler audioHandler;
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  audioHandler = await NotificationController.initialize();
+
   runApp(const MyApp());
 }
 

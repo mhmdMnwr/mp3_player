@@ -26,7 +26,7 @@ class PlayerPage extends StatelessWidget {
         children: [
           const SizedBox(height: 40),
           Center(
-            child: AudioImage(imagePath: playerState.currentSong?.imagePath),
+            child: AudioImage(artworkId: playerState.currentSong?.artworkId),
           ),
           const SizedBox(height: 70),
           AudioInfo(

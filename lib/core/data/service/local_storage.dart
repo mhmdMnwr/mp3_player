@@ -1,12 +1,12 @@
-import 'package:mp3_player_v2/core/data/model/audio_model.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
 
+/// Stores only favorite song IDs (from MediaStore).
+/// All song data comes from on_audio_query — nothing is cached.
 class LocalStorageService {
   static const String _databaseName = 'audio_library.db';
-  static const int _databaseVersion = 1;
-  static const String _tableName = 'audios';
-  static const String _defaultImagePath = 'assets/images/podcast.png';
+  static const int _databaseVersion = 2;
+  static const String _favoritesTable = 'favorites';
 
   Database? _database;
 
@@ -28,92 +28,43 @@ class LocalStorageService {
       version: _databaseVersion,
       onCreate: (db, version) async {
         await db.execute('''
-          CREATE TABLE $_tableName(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT NOT NULL,
-            artist TEXT NOT NULL,
-            image_path TEXT NOT NULL,
-            duration TEXT NOT NULL,
-            file_path TEXT NOT NULL UNIQUE,
-            is_favorite INTEGER NOT NULL DEFAULT 0
+          CREATE TABLE $_favoritesTable(
+            song_id TEXT PRIMARY KEY
           )
         ''');
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        // Drop old table from v1 and create new favorites-only table
+        if (oldVersion < 2) {
+          await db.execute('DROP TABLE IF EXISTS audios');
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS $_favoritesTable(
+              song_id TEXT PRIMARY KEY
+            )
+          ''');
+        }
       },
     );
   }
 
-  Future<void> storeAudiosFromLocalFiles(List<AudioModel> audios) async {
+  Future<Set<String>> getFavoriteIds() async {
     final db = await database;
-    final batch = db.batch();
+    final rows = await db.query(_favoritesTable);
+    return rows.map((row) => row['song_id'] as String).toSet();
+  }
 
-    for (final audio in audios) {
-      final normalizedImagePath = audio.imagePath.trim().isEmpty
-          ? _defaultImagePath
-          : audio.imagePath;
-
-      batch.insert(_tableName, {
-        'title': audio.title,
-        'artist': audio.artist,
-        'image_path': normalizedImagePath,
-        'duration': audio.duration,
-        'file_path': audio.filePath,
-        'is_favorite': audio.isFavorite ? 1 : 0,
-      }, conflictAlgorithm: ConflictAlgorithm.replace);
+  Future<void> setFavorite(String songId, bool isFavorite) async {
+    final db = await database;
+    if (isFavorite) {
+      await db.insert(_favoritesTable, {
+        'song_id': songId,
+      }, conflictAlgorithm: ConflictAlgorithm.ignore);
+    } else {
+      await db.delete(
+        _favoritesTable,
+        where: 'song_id = ?',
+        whereArgs: [songId],
+      );
     }
-
-    await batch.commit(noResult: true);
-  }
-
-  Future<List<AudioModel>> getAllSongs() async {
-    final db = await database;
-    final rows = await db.query(
-      _tableName,
-      orderBy: 'title COLLATE NOCASE ASC',
-    );
-
-    return rows.map(_mapToAudioModel).toList();
-  }
-
-  Future<List<AudioModel>> getFavoriteSongs() async {
-    final db = await database;
-    final rows = await db.query(
-      _tableName,
-      where: 'is_favorite = ?',
-      whereArgs: [1],
-      orderBy: 'title COLLATE NOCASE ASC',
-    );
-
-    return rows.map(_mapToAudioModel).toList();
-  }
-
-  Future<void> setSongFavorite({
-    required String songId,
-    required bool isFavorite,
-  }) async {
-    final db = await database;
-    await db.update(
-      _tableName,
-      {'is_favorite': isFavorite ? 1 : 0},
-      where: 'id = ?',
-      whereArgs: [int.tryParse(songId) ?? -1],
-    );
-  }
-
-  AudioModel _mapToAudioModel(Map<String, Object?> row) {
-    final rowImagePath = (row['image_path'] as String?)?.trim() ?? '';
-    final normalizedImagePath =
-        rowImagePath.isEmpty || rowImagePath == 'assets/images/default.jpg'
-        ? _defaultImagePath
-        : rowImagePath;
-
-    return AudioModel(
-      id: row['id'].toString(),
-      title: row['title'] as String,
-      artist: row['artist'] as String,
-      imagePath: normalizedImagePath,
-      duration: row['duration'] as String,
-      filePath: row['file_path'] as String,
-      isFavorite: (row['is_favorite'] as int) == 1,
-    );
   }
 }

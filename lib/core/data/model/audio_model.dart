@@ -2,9 +2,9 @@ class AudioModel {
   final String id;
   final String title;
   final String artist;
-  final String imagePath;
   final String duration;
   final String filePath;
+  final int artworkId; // MediaStore ID used to query album art
   final bool isFavorite;
 
   AudioModel({
@@ -13,7 +13,7 @@ class AudioModel {
     required this.artist,
     required this.duration,
     required this.filePath,
-    this.imagePath = 'assets/images/podcast.png',
+    this.artworkId = 0,
     this.isFavorite = false,
   });
 
@@ -21,18 +21,18 @@ class AudioModel {
     String? id,
     String? title,
     String? artist,
-    String? imagePath,
     String? duration,
     String? filePath,
+    int? artworkId,
     bool? isFavorite,
   }) {
     return AudioModel(
       id: id ?? this.id,
       title: title ?? this.title,
       artist: artist ?? this.artist,
-      imagePath: imagePath ?? this.imagePath,
       duration: duration ?? this.duration,
       filePath: filePath ?? this.filePath,
+      artworkId: artworkId ?? this.artworkId,
       isFavorite: isFavorite ?? this.isFavorite,
     );
   }

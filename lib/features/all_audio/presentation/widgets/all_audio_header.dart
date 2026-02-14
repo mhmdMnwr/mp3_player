@@ -16,7 +16,7 @@ class AllAudioHeader extends StatelessWidget {
         foregroundColor: colors.surface,
         padding: const EdgeInsets.symmetric(vertical: 14),
       ),
-      child: const Text('Add Audio'),
+      child: const Text('Scan Audio'),
     );
   }
 }
