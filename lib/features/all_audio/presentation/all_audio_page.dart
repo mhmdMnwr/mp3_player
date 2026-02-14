@@ -35,42 +35,22 @@ class AllAudioPage extends StatelessWidget {
       return;
     }
 
-    // Prepare a permanent directory for audio files (not cache)
-    final dir = await getApplicationDocumentsDirectory();
-    final audioDir = Directory(p.join(dir.path, 'audio_files'));
-    if (!await audioDir.exists()) {
-      await audioDir.create(recursive: true);
-    }
-
     final audios = <AudioModel>[];
 
     for (final file in result.files) {
-      final cachedPath = file.path;
-      if (cachedPath == null || cachedPath.isEmpty) {
+      final filePath = file.path;
+      if (filePath == null || filePath.isEmpty) {
         continue;
       }
 
-      final title = p.basenameWithoutExtension(cachedPath).trim();
+      final title = p.basenameWithoutExtension(filePath).trim();
       final id = DateTime.now().microsecondsSinceEpoch.toString();
+
+      // Extract only the small album art image (a few KB), not the audio file
       final artworkPath = await _extractArtworkPath(
-        audioFilePath: cachedPath,
+        audioFilePath: filePath,
         audioId: id,
       );
-
-      // Move file from picker cache to permanent storage
-      final permanentPath = p.join(
-        audioDir.path,
-        '${id}_${p.basename(cachedPath)}',
-      );
-      String storedPath = cachedPath;
-      try {
-        final cachedFile = File(cachedPath);
-        await cachedFile.copy(permanentPath);
-        await cachedFile.delete();
-        storedPath = permanentPath;
-      } catch (_) {
-        // Fallback to cached path if move fails
-      }
 
       audios.add(
         AudioModel(
@@ -79,7 +59,7 @@ class AllAudioPage extends StatelessWidget {
           artist: 'Unknown Artist',
           imagePath: artworkPath,
           duration: '--:--',
-          filePath: storedPath,
+          filePath: filePath, // reference original file directly, no copying
         ),
       );
     }
@@ -90,7 +70,7 @@ class AllAudioPage extends StatelessWidget {
 
     await playerCubit.storeAudiosFromLocalFiles(audios);
 
-    // Clear any remaining file picker cache
+    // Clean up any temp files the picker may have created
     await FilePicker.platform.clearTemporaryFiles();
   }
 
