@@ -47,6 +47,7 @@ class PlayerPage extends StatelessWidget {
             isPlaying: playerState.isPlaying,
             onPrevious: playerCubit.previous,
             onNext: playerCubit.next,
+            onShuffle: playerCubit.toggleShuffle,
             onPlayPauseChanged: (isPlaying) {
               if (isPlaying) {
                 playerCubit.play();

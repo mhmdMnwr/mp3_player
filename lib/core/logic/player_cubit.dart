@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:bloc/bloc.dart';
 import 'package:just_audio/just_audio.dart' as ja;
@@ -27,6 +28,7 @@ class PlayerCubit extends Cubit<PlayerState> {
   StreamSubscription<Duration>? _positionSubscription;
   StreamSubscription<Duration?>? _durationSubscription;
   StreamSubscription<dynamic>? _customEventSubscription;
+  bool isShuffleMode = false;
   int? _loadedSongIndex;
 
   PlayerCubit._internal({
@@ -249,13 +251,23 @@ class PlayerCubit extends Cubit<PlayerState> {
     }
   }
 
+  Future<bool> toggleShuffle() async {
+    isShuffleMode = !isShuffleMode;
+    // For simplicity, we won't implement actual shuffling logic here.
+    return isShuffleMode;
+  }
+
   Future<void> next() async {
     if (!state.hasSongs) {
       return;
     }
 
+    int next = isShuffleMode
+        ? Random().nextInt(state.songs.length)
+        : state.currentIndex + 1;
+
     final isLast = state.currentIndex >= state.songs.length - 1;
-    final nextIndex = isLast ? 0 : state.currentIndex + 1;
+    final nextIndex = isLast ? 0 : next;
 
     emit(state.copyWith(currentIndex: nextIndex, isPlaying: true));
 

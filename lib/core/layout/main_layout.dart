@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -26,6 +25,13 @@ class MainLayout extends StatefulWidget {
 }
 
 class _MainLayoutState extends State<MainLayout> {
+  static const List<String> _titles = [
+    'Playing',
+    'All Audios',
+    'Favorites',
+    'Downloads',
+  ];
+
   late final PlayerCubit _playerCubit;
   late final StreamSubscription<PlayerState> _playerSubscription;
   PlayerState _playerState = const PlayerState();
@@ -69,37 +75,37 @@ class _MainLayoutState extends State<MainLayout> {
   }
 
   void _onTabChanged(int index) {
-    if (index == _currentIndex) {
-      return;
-    }
-
-    if (index == 0 || index == 1 || index == 3) {
-      setState(() {
-        _currentIndex = index;
-      });
+    if (index == _currentIndex || index < 0 || index >= _titles.length) {
       return;
     }
 
     if (index == 2) {
       _playerCubit.loadFavoriteSongs();
-      setState(() {
-        _currentIndex = 2;
-      });
+    }
+
+    setState(() {
+      _currentIndex = index;
+    });
+  }
+
+  void _openPlayerTab() {
+    if (!mounted) {
       return;
     }
+    setState(() {
+      _currentIndex = 0;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final titles = ['Playing', 'All Audios', 'Favorites', 'Downloads'];
-    final safeTitleIndex = math.min(_currentIndex, titles.length - 1);
     final themeCubit = context.read<ThemeCubit>();
 
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          titles[safeTitleIndex],
+          _titles[_currentIndex],
           style: TextStyle(
             color: colors.textPrimary,
             fontWeight: FontWeight.w600,
@@ -143,34 +149,23 @@ class _MainLayoutState extends State<MainLayout> {
           child: IndexedStack(
             index: _currentIndex,
             children: [
-              PlayerPage(
-                playerState: _playerState,
-                playerCubit: _playerCubit,
-                onFavoriteLongPress: () => _onTabChanged(2),
+              BlocProvider(
+                create: (_) => _playerCubit,
+                child: PlayerPage(
+                  playerState: _playerState,
+                  playerCubit: _playerCubit,
+                  onFavoriteLongPress: () => _onTabChanged(2),
+                ),
               ),
               AllAudioPage(
                 playerState: _playerState,
                 playerCubit: _playerCubit,
-                onSongPlayed: () {
-                  if (!mounted) {
-                    return;
-                  }
-                  setState(() {
-                    _currentIndex = 0;
-                  });
-                },
+                onSongPlayed: _openPlayerTab,
               ),
               FavoritePage(
                 playerState: _playerState,
                 playerCubit: _playerCubit,
-                onSongPlayed: () {
-                  if (!mounted) {
-                    return;
-                  }
-                  setState(() {
-                    _currentIndex = 0;
-                  });
-                },
+                onSongPlayed: _openPlayerTab,
               ),
               const DownloadPage(),
             ],

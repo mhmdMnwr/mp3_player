@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:mp3_player_v2/core/logic/player_cubit.dart';
 import 'package:mp3_player_v2/core/theme/app_colors.dart';
 
 class AudioPlayButtons extends StatefulWidget {
@@ -112,7 +114,10 @@ class _AudioPlayButtonsState extends State<AudioPlayButtons>
             alignment: Alignment.center,
             children: [
               _buildAnimatedSideButton(
-                icon: Icons.shuffle,
+                icon: context.read<PlayerCubit>().isShuffleMode
+                    ? Icons.shuffle_on_outlined
+                    : Icons.shuffle,
+
                 onPressed: widget.onShuffle,
                 iconSize: 40,
                 targetOffsetX: -farOffset,
