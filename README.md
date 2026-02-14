@@ -1,4 +1,4 @@
-# mp3_player_v2
+# mp3_player
 
 MP3 player built with Flutter using:
 - `bloc` (`Cubit`) for state management
@@ -6,7 +6,118 @@ MP3 player built with Flutter using:
 - `sqflite` for local persistence
 - `file_picker` + `flutter_media_metadata` for importing local songs and artwork
 
-This README explains in detail how the data layer, cubit/state, and player logic work, then gives a brief full-project data-flow summary.
+This README explains setup, architecture, data/logic internals, and complete project data flow.
+
+---
+
+## Table of Contents
+
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Prerequisites](#prerequisites)
+- [Installation & Run](#installation--run)
+- [Project Structure](#project-structure)
+- [1) High-Level Architecture](#1-high-level-architecture)
+- [2) Data Layer (Detailed)](#2-data-layer-detailed)
+- [3) State Layer (Detailed)](#3-state-layer-detailed)
+- [4) How the Player Works Internally (Detailed Runtime)](#4-how-the-player-works-internally-detailed-runtime)
+- [5) Brief Explanation of Other Important Files](#5-brief-explanation-of-other-important-files)
+- [6) End-to-End Project Data Flow](#6-end-to-end-project-data-flow)
+- [7) Notes and Extension Ideas](#7-notes-and-extension-ideas)
+
+---
+
+## Features
+
+- Import local `.mp3` files (single or multiple) from device storage.
+- Extract and save embedded artwork from metadata.
+- Persist library in local SQLite database.
+- Play/pause/seek/next/previous with real-time progress updates.
+- Mark/unmark songs as favorites.
+- Open favorites quickly from bottom navigation or long-press on favorite button.
+- Keep page UI in one shared shell (`IndexedStack`) for smoother tab switching.
+
+---
+
+## Tech Stack
+
+- Flutter (Dart)
+- `bloc` (`Cubit`)
+- `just_audio`
+- `sqflite`
+- `file_picker`
+- `flutter_media_metadata`
+- `path_provider`
+- `google_nav_bar`
+
+---
+
+## Prerequisites
+
+Before running the project, make sure you have:
+
+- Flutter SDK installed and added to PATH
+- A configured Android/iOS emulator or physical device
+- Required platform toolchains (`flutter doctor` should be clean enough to run your target)
+
+---
+
+## Installation & Run
+
+1. Clone the repository.
+2. Install dependencies:
+
+```bash
+flutter pub get
+```
+
+3. Run static analysis:
+
+```bash
+flutter analyze
+```
+
+4. Run app:
+
+```bash
+flutter run
+```
+
+5. Build debug APK (optional):
+
+```bash
+flutter build apk --debug
+```
+
+---
+
+## Project Structure
+
+```text
+lib/
+  core/
+    data/
+      model/audio_model.dart
+      repo/audio_repo.dart
+      service/local_storage.dart
+    layout/main_layout.dart
+    logic/
+      player_cubit.dart
+      player_state.dart
+    theme/
+      app_colors.dart
+      app_theme.dart
+  features/
+    player/presentation/
+      player_page.dart
+      widgets/
+    all_audio/presentation/
+      all_audio_page.dart
+      widgets/
+    favorite/presentation/
+      favorite_page.dart
+  main.dart
+```
 
 ---
 
@@ -34,7 +145,7 @@ Fields:
 - `title`: song title
 - `artist`: artist name
 - `imagePath`: either asset path (`assets/...`) or local file path for extracted artwork
-- `duration`: currently stored as display string (e.g. `--:--`)
+- `duration`: currently stored as a display string (e.g. `--:--`)
 - `filePath`: absolute path to the song file on device
 - `isFavorite`: favorite flag
 
@@ -58,42 +169,42 @@ Private field:
 
 Functions:
 
-1) `Future<Database> get database`
+1. `Future<Database> get database`
 - Returns already opened DB if available.
 - Otherwise opens DB via `_initDatabase()` and caches it.
 
-2) `Future<Database> _initDatabase()`
+2. `Future<Database> _initDatabase()`
 - Uses `getDatabasesPath()` + `path.join` to build DB file path.
 - Opens DB with versioning.
 - Creates table on first launch:
-	- `id INTEGER PRIMARY KEY AUTOINCREMENT`
-	- `title TEXT`
-	- `artist TEXT`
-	- `image_path TEXT`
-	- `duration TEXT`
-	- `file_path TEXT UNIQUE`
-	- `is_favorite INTEGER DEFAULT 0`
+  - `id INTEGER PRIMARY KEY AUTOINCREMENT`
+  - `title TEXT`
+  - `artist TEXT`
+  - `image_path TEXT`
+  - `duration TEXT`
+  - `file_path TEXT UNIQUE`
+  - `is_favorite INTEGER DEFAULT 0`
 
-3) `Future<void> storeAudiosFromLocalFiles(List<AudioModel> audios)`
+3. `Future<void> storeAudiosFromLocalFiles(List<AudioModel> audios)`
 - Batch inserts all songs.
 - Normalizes empty `imagePath` to default artwork.
 - Uses `ConflictAlgorithm.replace` (same `file_path` replaces previous row).
 
-4) `Future<List<AudioModel>> getAllSongs()`
+4. `Future<List<AudioModel>> getAllSongs()`
 - Reads all rows ordered by title (case-insensitive).
 - Maps each DB row to `AudioModel` via `_mapToAudioModel`.
 
-5) `Future<List<AudioModel>> getFavoriteSongs()`
+5. `Future<List<AudioModel>> getFavoriteSongs()`
 - Reads only rows where `is_favorite = 1`.
 - Ordered by title.
 - Returns mapped `AudioModel` list.
 
-6) `Future<void> setSongFavorite({required String songId, required bool isFavorite})`
+6. `Future<void> setSongFavorite({required String songId, required bool isFavorite})`
 - Converts `songId` from string to integer.
 - Updates `is_favorite` for that row.
 - Persists favorite toggle.
 
-7) `AudioModel _mapToAudioModel(Map<String, Object?> row)`
+7. `AudioModel _mapToAudioModel(Map<String, Object?> row)`
 - Handles row-to-model mapping.
 - Normalizes old/empty image path to default artwork.
 - Converts `is_favorite` int to bool.
@@ -136,8 +247,8 @@ Fields:
 
 Computed getters:
 - `currentSong`:
-	- Returns `songs[currentIndex]` when index is valid
-	- Returns `null` when list empty/index invalid
+  - Returns `songs[currentIndex]` when index is valid
+  - Returns `null` when list is empty or index is invalid
 - `hasSongs`: shorthand for `songs.isNotEmpty`
 
 `copyWith(...)` behavior:
@@ -148,7 +259,7 @@ Computed getters:
 ### 3.2 `PlayerCubit`
 File: `lib/core/logic/player_cubit.dart`
 
-`PlayerCubit` is the app’s playback and library orchestrator.
+`PlayerCubit` is the app's playback and library orchestrator.
 
 #### Construction and lifetime
 
@@ -160,51 +271,51 @@ Internal resources:
 - `_audioRepo`: data source abstraction
 - `_audioPlayer`: `just_audio` player
 - Stream subscriptions:
-	- `_audioPlayerStateSubscription`
-	- `_positionSubscription`
-	- `_durationSubscription`
+  - `_audioPlayerStateSubscription`
+  - `_positionSubscription`
+  - `_durationSubscription`
 - `_loadedSongIndex`: tracks which song source is currently loaded into player to avoid redundant `setFilePath`.
 
 Constructor logic (`PlayerCubit._internal`):
-1) Listen to player state stream:
-	 - If processing completed, auto-calls `next()`.
-	 - Syncs `state.isPlaying` with actual player `playing` flag.
-2) Listen to `positionStream` and emit updated playback position.
-3) Listen to `durationStream` and emit song duration (fallback `Duration.zero`).
+1. Listen to player state stream:
+   - If processing is completed, auto-calls `next()`.
+   - Syncs `state.isPlaying` with the actual player `playing` flag.
+2. Listen to `positionStream` and emit updated playback position.
+3. Listen to `durationStream` and emit song duration (fallback `Duration.zero`).
 
 ---
 
 ### 3.3 Cubit Functions (Every Function Explained)
 
-1) `loadSongs({String? selectedSongId, bool autoPlay = false})`
+1. `loadSongs({String? selectedSongId, bool autoPlay = false})`
 - Sets state to loading.
 - Loads all songs via repo.
 - Resolves selected index:
-	- Default `0`
-	- If `selectedSongId` exists in list, selects that index.
+  - Default `0`
+  - If `selectedSongId` exists in list, selects that index.
 - Emits loaded state with:
-	- `songs`
-	- `favoriteSongs` (filtered from songs)
-	- `currentIndex`
-	- reset play/position/duration defaults
+  - `songs`
+  - `favoriteSongs` (filtered from songs)
+  - `currentIndex`
+  - Reset play/position/duration defaults
 - Clears `_loadedSongIndex` so correct source is loaded.
 - Calls `_setCurrentSongSource()` if list not empty.
 - If `autoPlay`, calls `play()`.
 - On any exception: emits error state.
 
-2) `storeAudiosFromLocalFiles(List<AudioModel> audios)`
+2. `storeAudiosFromLocalFiles(List<AudioModel> audios)`
 - Persists imported songs to DB through repo.
 - Calls `loadSongs()` to refresh in-memory state from DB.
 - On error: emits error state.
 
-3) `loadFavoriteSongs()`
+3. `loadFavoriteSongs()`
 - Sets loading status.
 - Fetches favorites only via repo.
 - Emits loaded state with updated `favoriteSongs`.
 - Does not replace full `songs` list.
 - On error: emits error state.
 
-4) `toggleCurrentSongFavorite()`
+4. `toggleCurrentSongFavorite()`
 - Reads `currentSong`; exits if null.
 - Inverts favorite flag.
 - Persists with `setSongFavorite(songId, isFavorite)`.
@@ -213,27 +324,27 @@ Constructor logic (`PlayerCubit._internal`):
 - Emits updated state.
 - On error: emits error state.
 
-5) `play()`
+5. `play()`
 - Exits if no songs.
 - Ensures audio source is loaded for current index.
 - Calls `just_audio.play()`.
 - Emits `isPlaying: true`.
 - On error: emits error state and marks `isPlaying: false`.
 
-6) `pause()`
+6. `pause()`
 - Exits if no songs.
 - Calls `just_audio.pause()`.
 - Emits `isPlaying: false`.
 
-7) `seek(Duration position)`
+7. `seek(Duration position)`
 - Exits if no songs.
 - Calls `just_audio.seek(position)`.
 
-8) `playPause()`
+8. `playPause()`
 - Exits if no songs.
 - Toggles: if playing => `pause()`, else => `play()`.
 
-9) `selectSongById(String songId, {bool autoPlay = false})`
+9. `selectSongById(String songId, {bool autoPlay = false})`
 - Finds song index in `songs`.
 - Exits if not found.
 - Emits state with new `currentIndex` and target `isPlaying`.
@@ -241,25 +352,25 @@ Constructor logic (`PlayerCubit._internal`):
 - Loads source + seeks to start.
 - Plays or pauses based on `autoPlay`.
 
-10) `next()`
+10. `next()`
 - Exits if no songs.
 - Computes circular next index.
 - Emits state with next index and `isPlaying: true`.
 - Reloads source, seeks to start, plays.
 
-11) `previous()`
+11. `previous()`
 - Exits if no songs.
 - Computes circular previous index.
 - Emits state with previous index and `isPlaying: true`.
 - Reloads source, seeks to start, plays.
 
-12) `_setCurrentSongSource()` (private)
+12. `_setCurrentSongSource()` (private)
 - Reads `currentSong`; exits if null.
 - If current index already loaded, exits early.
 - Else calls `setFilePath(currentSong.filePath)`.
 - Caches `_loadedSongIndex`.
 
-13) `disposePlayer()`
+13. `disposePlayer()`
 - Cancels all stream subscriptions.
 - Disposes `just_audio` player.
 - Closes cubit.
@@ -287,7 +398,7 @@ Constructor logic (`PlayerCubit._internal`):
 - `just_audio` processing state listener catches `completed` and calls `next()` automatically.
 
 ### Song selection from lists
-1. User taps a song in All Audios / Favorites list.
+1. User taps a song in All Audios or Favorites list.
 2. Page calls `selectSongById(..., autoPlay: true)`.
 3. Cubit loads selected source, seeks zero, plays.
 4. Layout switches tab back to Playing view.
@@ -314,8 +425,8 @@ Constructor logic (`PlayerCubit._internal`):
 - Uses `IndexedStack` to keep tab widgets alive.
 - Hosts and shares one `PlayerCubit` and one stream subscription.
 - Handles special tab behavior:
-	- Favorites tab loads favorites before showing.
-	- Long-press favorite button maps to `_onTabChanged(2)`.
+  - Favorites tab loads favorites before showing.
+  - Long-press favorite button maps to `_onTabChanged(2)`.
 
 ### `lib/features/player/presentation/player_page.dart`
 - UI for current song, info, slider, controls.
@@ -378,6 +489,3 @@ Bottom nav Favorites tab OR favorite-button long press → `MainLayout._onTabCha
 - `duration` in `AudioModel` is display text; if needed, store raw milliseconds for richer filtering/sorting.
 - For very large libraries, pagination or lazy loading can be added at service/repo level.
 - `disposePlayer()` exists for controlled teardown if app architecture later requires explicit cubit disposal.
-
-#   m p 3 _ p l a y e r  
- 

@@ -42,6 +42,7 @@ dependencies:
   just_audio: ^0.9.46
   flutter_media_metadata: ^1.0.0+1
   path_provider: ^2.1.5
+  # youtube_explode_dart: ^2.5.1 # This line is commented out as it is not present in the original file.
 
 dev_dependencies:
   flutter_test:
