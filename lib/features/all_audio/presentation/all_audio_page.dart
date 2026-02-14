@@ -35,20 +35,40 @@ class AllAudioPage extends StatelessWidget {
       return;
     }
 
+    // Prepare a permanent directory for audio files (not cache)
+    final dir = await getApplicationDocumentsDirectory();
+    final audioDir = Directory(p.join(dir.path, 'audio_files'));
+    if (!await audioDir.exists()) {
+      await audioDir.create(recursive: true);
+    }
+
     final audios = <AudioModel>[];
 
     for (final file in result.files) {
-      final filePath = file.path;
-      if (filePath == null || filePath.isEmpty) {
+      final cachedPath = file.path;
+      if (cachedPath == null || cachedPath.isEmpty) {
         continue;
       }
 
-      final title = p.basenameWithoutExtension(filePath).trim();
+      final title = p.basenameWithoutExtension(cachedPath).trim();
       final id = DateTime.now().microsecondsSinceEpoch.toString();
       final artworkPath = await _extractArtworkPath(
-        audioFilePath: filePath,
+        audioFilePath: cachedPath,
         audioId: id,
       );
+
+      // Move file from picker cache to permanent storage
+      final permanentPath =
+          p.join(audioDir.path, '${id}_${p.basename(cachedPath)}');
+      String storedPath = cachedPath;
+      try {
+        final cachedFile = File(cachedPath);
+        await cachedFile.copy(permanentPath);
+        await cachedFile.delete();
+        storedPath = permanentPath;
+      } catch (_) {
+        // Fallback to cached path if move fails
+      }
 
       audios.add(
         AudioModel(
@@ -57,7 +77,7 @@ class AllAudioPage extends StatelessWidget {
           artist: 'Unknown Artist',
           imagePath: artworkPath,
           duration: '--:--',
-          filePath: filePath,
+          filePath: storedPath,
         ),
       );
     }
@@ -67,6 +87,9 @@ class AllAudioPage extends StatelessWidget {
     }
 
     await playerCubit.storeAudiosFromLocalFiles(audios);
+
+    // Clear any remaining file picker cache
+    await FilePicker.platform.clearTemporaryFiles();
   }
 
   Future<String> _extractArtworkPath({
