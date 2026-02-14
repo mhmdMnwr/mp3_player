@@ -13,6 +13,8 @@ class AllAudioList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+
     if (state.status == PlayerStatus.loading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -22,16 +24,16 @@ class AllAudioList extends StatelessWidget {
         child: Text(
           state.errorMessage ?? 'Something went wrong',
           textAlign: TextAlign.center,
-          style: const TextStyle(color: AppColors.error),
+          style: TextStyle(color: colors.error),
         ),
       );
     }
 
     if (state.songs.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
           'No audios yet. Tap Add Audio.',
-          style: TextStyle(color: AppColors.textSecondary),
+          style: TextStyle(color: colors.textSecondary),
         ),
       );
     }
@@ -43,7 +45,7 @@ class AllAudioList extends StatelessWidget {
         return Container(
           margin: const EdgeInsets.only(bottom: 10),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: colors.surface,
             borderRadius: BorderRadius.circular(14),
           ),
           child: ListTile(
@@ -54,14 +56,14 @@ class AllAudioList extends StatelessWidget {
             ),
             leading: ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: _buildSongArtwork(song.imagePath),
+              child: _buildSongArtwork(context, song.imagePath),
             ),
             title: Text(
               song.title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: AppColors.textPrimary,
+              style: TextStyle(
+                color: colors.textPrimary,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -69,11 +71,11 @@ class AllAudioList extends StatelessWidget {
               song.artist,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: AppColors.textSecondary),
+              style: TextStyle(color: colors.textSecondary),
             ),
             trailing: Text(
               song.duration,
-              style: const TextStyle(color: AppColors.textDisabled),
+              style: TextStyle(color: colors.textDisabled),
             ),
           ),
         );
@@ -81,7 +83,7 @@ class AllAudioList extends StatelessWidget {
     );
   }
 
-  Widget _buildSongArtwork(String imagePath) {
+  Widget _buildSongArtwork(BuildContext context, String imagePath) {
     final isAsset = imagePath.startsWith('assets/');
 
     if (isAsset) {
@@ -91,7 +93,7 @@ class AllAudioList extends StatelessWidget {
         height: 44,
         fit: BoxFit.cover,
         errorBuilder: (context, error, stackTrace) {
-          return _buildArtworkFallback();
+          return _buildArtworkFallback(context);
         },
       );
     }
@@ -102,20 +104,18 @@ class AllAudioList extends StatelessWidget {
       height: 44,
       fit: BoxFit.cover,
       errorBuilder: (context, error, stackTrace) {
-        return _buildArtworkFallback();
+        return _buildArtworkFallback(context);
       },
     );
   }
 
-  Widget _buildArtworkFallback() {
+  Widget _buildArtworkFallback(BuildContext context) {
+    final colors = context.colors;
     return Container(
       width: 44,
       height: 44,
-      color: AppColors.card,
-      child: const Icon(
-        Icons.music_note_rounded,
-        color: AppColors.iconInactive,
-      ),
+      color: colors.card,
+      child: Icon(Icons.music_note_rounded, color: colors.iconInactive),
     );
   }
 }

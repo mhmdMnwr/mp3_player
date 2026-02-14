@@ -14,6 +14,7 @@ class AudioImage extends StatefulWidget {
 class _AudioImageState extends State<AudioImage> {
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final imagePath = widget.imagePath;
     final useAsset = imagePath == null || imagePath.startsWith('assets/');
 
@@ -24,7 +25,7 @@ class _AudioImageState extends State<AudioImage> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: AppColors.textPrimary.withValues(alpha: 0.26),
+            color: colors.textPrimary.withValues(alpha: 0.26),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),
@@ -37,28 +38,29 @@ class _AudioImageState extends State<AudioImage> {
                 imagePath ?? 'assets/images/podcast.png',
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
-                  return _fallbackImage();
+                  return _fallbackImage(context);
                 },
               )
             : Image.file(
                 File(imagePath),
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
-                  return _fallbackImage();
+                  return _fallbackImage(context);
                 },
               ),
       ),
     );
   }
 
-  Widget _fallbackImage() {
+  Widget _fallbackImage(BuildContext context) {
+    final colors = context.colors;
     return Container(
-      color: AppColors.card,
+      color: colors.card,
       alignment: Alignment.center,
-      child: const Icon(
+      child: Icon(
         Icons.music_note_rounded,
         size: 48,
-        color: AppColors.iconInactive,
+        color: colors.iconInactive,
       ),
     );
   }

@@ -42,14 +42,21 @@ class _AudioInfoState extends State<AudioInfo> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Expanded(child: _buildTitleArtist(widget.title, widget.artist)),
+        Expanded(
+          child: _buildTitleArtist(context, widget.title, widget.artist),
+        ),
         const SizedBox(width: 12),
-        _buildFavoriteIcon(_isFavorite),
+        _buildFavoriteIcon(context, _isFavorite),
       ],
     );
   }
 
-  Widget _buildTitleArtist(String? title, String? artist) {
+  Widget _buildTitleArtist(
+    BuildContext context,
+    String? title,
+    String? artist,
+  ) {
+    final colors = context.colors;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -57,23 +64,24 @@ class _AudioInfoState extends State<AudioInfo> {
           title ?? 'Unknown Title',
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
+            color: colors.textPrimary,
           ),
         ),
         Text(
           artist ?? 'Unknown Artist',
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
+          style: TextStyle(fontSize: 14, color: colors.textSecondary),
         ),
       ],
     );
   }
 
-  Widget _buildFavoriteIcon(bool isFavorite) {
+  Widget _buildFavoriteIcon(BuildContext context, bool isFavorite) {
+    final colors = context.colors;
     return ElevatedButton(
       onPressed: () {
         setState(() {
@@ -86,11 +94,11 @@ class _AudioInfoState extends State<AudioInfo> {
         shape: const StadiumBorder(),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         minimumSize: const Size(44, 40),
-        backgroundColor: isFavorite ? AppColors.error : AppColors.surface,
-        foregroundColor: isFavorite ? AppColors.surface : AppColors.error,
-        side: const BorderSide(color: AppColors.error, width: 1.4),
+        backgroundColor: isFavorite ? colors.error : colors.surface,
+        foregroundColor: isFavorite ? colors.surface : colors.error,
+        side: BorderSide(color: colors.error, width: 1.4),
         elevation: isFavorite ? 6 : 0,
-        shadowColor: AppColors.textPrimary.withValues(alpha: 0.26),
+        shadowColor: colors.textPrimary.withValues(alpha: 0.26),
       ),
       child: Row(
         children: [

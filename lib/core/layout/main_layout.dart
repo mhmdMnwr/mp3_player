@@ -2,10 +2,12 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mp3_player_v2/core/data/repo/audio_repo.dart';
 import 'package:mp3_player_v2/core/theme/app_colors.dart';
 import 'package:mp3_player_v2/core/logic/player_cubit.dart';
 import 'package:mp3_player_v2/core/logic/player_state.dart';
+import 'package:mp3_player_v2/core/logic/theme_cubit.dart';
 import 'package:mp3_player_v2/features/all_audio/presentation/all_audio_page.dart';
 import 'package:mp3_player_v2/features/favorite/presentation/favorite_page.dart';
 import 'package:mp3_player_v2/features/player/presentation/player_page.dart';
@@ -84,26 +86,52 @@ class _MainLayoutState extends State<MainLayout> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final titles = ['Playing', 'All Audios', 'Favorites'];
     final safeTitleIndex = math.min(_currentIndex, titles.length - 1);
+    final themeCubit = context.read<ThemeCubit>();
 
     return Scaffold(
       appBar: AppBar(
         title: Text(
           titles[safeTitleIndex],
-          style: const TextStyle(
-            color: AppColors.textPrimary,
+          style: TextStyle(
+            color: colors.textPrimary,
             fontWeight: FontWeight.w600,
           ),
         ),
-        backgroundColor: AppColors.background,
+        backgroundColor: colors.background,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              transitionBuilder: (child, animation) {
+                return RotationTransition(
+                  turns: Tween(begin: 0.75, end: 1.0).animate(animation),
+                  child: FadeTransition(opacity: animation, child: child),
+                );
+              },
+              child: Icon(
+                themeCubit.isDark
+                    ? Icons.light_mode_rounded
+                    : Icons.dark_mode_rounded,
+                key: ValueKey<bool>(themeCubit.isDark),
+                color: colors.textPrimary,
+              ),
+            ),
+            onPressed: themeCubit.toggleTheme,
+            tooltip: themeCubit.isDark
+                ? 'Switch to light mode'
+                : 'Switch to dark mode',
+          ),
+        ],
       ),
       bottomNavigationBar: BottomNavigationBarWidget(
         currentIndex: _currentIndex,
         onTabChanged: _onTabChanged,
       ),
-      backgroundColor: AppColors.background,
+      backgroundColor: colors.background,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),

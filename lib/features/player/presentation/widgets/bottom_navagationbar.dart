@@ -43,15 +43,17 @@ class _BottomNavigationBarWidgetState extends State<BottomNavigationBarWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+
     return SafeArea(
       minimum: const EdgeInsets.fromLTRB(16, 0, 16, 14),
       child: Container(
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: colors.surface,
           borderRadius: BorderRadius.circular(26),
           boxShadow: [
             BoxShadow(
-              color: AppColors.textPrimary.withValues(alpha: 0.12),
+              color: colors.textPrimary.withValues(alpha: 0.12),
               blurRadius: 20,
               offset: const Offset(0, 8),
             ),
@@ -60,23 +62,23 @@ class _BottomNavigationBarWidgetState extends State<BottomNavigationBarWidget> {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(26),
           child: Container(
-            color: AppColors.surface,
+            color: colors.surface,
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             child: GNav(
               selectedIndex: _selectedIndex,
               onTabChange: _onItemTapped,
-              rippleColor: AppColors.textPrimary.withValues(alpha: 0.12),
-              hoverColor: AppColors.textPrimary.withValues(alpha: 0.12),
+              rippleColor: colors.textPrimary.withValues(alpha: 0.12),
+              hoverColor: colors.textPrimary.withValues(alpha: 0.12),
               haptic: true,
               tabBorderRadius: 16,
-              tabBackgroundColor: AppColors.accent.withValues(alpha: 0.14),
+              tabBackgroundColor: colors.accent.withValues(alpha: 0.14),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               gap: 8,
-              color: AppColors.iconInactive,
-              activeColor: AppColors.accent,
+              color: colors.iconInactive,
+              activeColor: colors.accent,
               iconSize: 22,
-              textStyle: const TextStyle(
-                color: AppColors.accent,
+              textStyle: TextStyle(
+                color: colors.accent,
                 fontWeight: FontWeight.w600,
               ),
               tabs: const [

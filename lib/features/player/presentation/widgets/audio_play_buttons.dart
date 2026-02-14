@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mp3_player_v2/core/theme/app_colors.dart';
 
 class AudioPlayButtons extends StatefulWidget {
   final VoidCallback? onPrevious;
@@ -147,6 +148,7 @@ class _AudioPlayButtonsState extends State<AudioPlayButtons>
   }
 
   Widget _buildMainButton() {
+    final colors = context.colors;
     return ScaleTransition(
       scale: _pressScale,
       child: AnimatedContainer(
@@ -156,10 +158,10 @@ class _AudioPlayButtonsState extends State<AudioPlayButtons>
           shape: BoxShape.circle,
           boxShadow: [
             if (_isPlaying)
-              const BoxShadow(
-                color: Colors.black26,
+              BoxShadow(
+                color: colors.textPrimary.withValues(alpha: 0.26),
                 blurRadius: 18,
-                offset: Offset(0, 8),
+                offset: const Offset(0, 8),
               ),
           ],
         ),
@@ -170,10 +172,10 @@ class _AudioPlayButtonsState extends State<AudioPlayButtons>
             onPressed: _onMainPressed,
             style: ElevatedButton.styleFrom(
               shape: const CircleBorder(),
-              backgroundColor: Colors.white,
-              foregroundColor: Colors.black,
+              backgroundColor: colors.surface,
+              foregroundColor: colors.textPrimary,
               elevation: 0,
-              side: const BorderSide(color: Colors.black, width: 3),
+              side: BorderSide(color: colors.textPrimary, width: 3),
               padding: EdgeInsets.zero,
             ),
             child: AnimatedSwitcher(
@@ -198,10 +200,11 @@ class _AudioPlayButtonsState extends State<AudioPlayButtons>
     required VoidCallback? onPressed,
     double iconSize = 28,
   }) {
+    final colors = context.colors;
     return IconButton(
       onPressed: onPressed,
       icon: Icon(icon, size: iconSize),
-      color: Colors.black,
+      color: colors.textPrimary,
     );
   }
 

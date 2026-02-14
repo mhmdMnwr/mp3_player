@@ -8,11 +8,12 @@ class AllAudioHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return ElevatedButton(
       onPressed: onAddSong,
       style: ElevatedButton.styleFrom(
-        backgroundColor: AppColors.accent,
-        foregroundColor: AppColors.surface,
+        backgroundColor: colors.accent,
+        foregroundColor: colors.surface,
         padding: const EdgeInsets.symmetric(vertical: 14),
       ),
       child: const Text('Add Audio'),

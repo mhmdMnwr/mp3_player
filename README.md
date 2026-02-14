@@ -24,6 +24,7 @@ This README explains setup, architecture, data/logic internals, and complete pro
 - [5) Brief Explanation of Other Important Files](#5-brief-explanation-of-other-important-files)
 - [6) End-to-End Project Data Flow](#6-end-to-end-project-data-flow)
 - [7) Notes and Extension Ideas](#7-notes-and-extension-ideas)
+- [8) Dark Mode Toggle Feature (Detailed)](#8-dark-mode-toggle-feature-detailed)
 
 ---
 
@@ -36,6 +37,7 @@ This README explains setup, architecture, data/logic internals, and complete pro
 - Mark/unmark songs as favorites.
 - Open favorites quickly from bottom navigation or long-press on favorite button.
 - Keep page UI in one shared shell (`IndexedStack`) for smoother tab switching.
+- **Dark mode / light mode toggle** with smooth animated icon transition.
 
 ---
 
@@ -43,6 +45,7 @@ This README explains setup, architecture, data/logic internals, and complete pro
 
 - Flutter (Dart)
 - `bloc` (`Cubit`)
+- `flutter_bloc`
 - `just_audio`
 - `sqflite`
 - `file_picker`
@@ -104,6 +107,7 @@ lib/
     logic/
       player_cubit.dart
       player_state.dart
+      theme_cubit.dart
     theme/
       app_colors.dart
       app_theme.dart
@@ -461,7 +465,8 @@ Constructor logic (`PlayerCubit._internal`):
 - Emits selected tab index to `MainLayout`.
 
 ### `lib/core/theme/app_colors.dart` and `lib/core/theme/app_theme.dart`
-- Centralized color and theme definitions used app-wide.
+- `app_colors.dart` defines `AppColorsExtension` (a `ThemeExtension<AppColorsExtension>`) with two static palettes (`light` and `dark`). Also provides a `BuildContext` extension (`context.colors`) for quick access.
+- `app_theme.dart` builds both `lightTheme` and `darkTheme` ThemeData objects using a shared `_buildTheme` factory, attaching the `AppColorsExtension` via `extensions: [colors]`.
 
 ---
 
@@ -482,6 +487,9 @@ Favorite button tap in Player → `toggleCurrentSongFavorite()` → DB `is_favor
 ### Flow E: Open Favorites
 Bottom nav Favorites tab OR favorite-button long press → `MainLayout._onTabChanged(2)` → `loadFavoriteSongs()` → repo/service DB query (`is_favorite = 1`) → `FavoritePage` shows filtered list.
 
+### Flow F: Toggle Dark / Light Mode
+User taps the sun/moon icon in the AppBar → `ThemeCubit.toggleTheme()` → emits new `ThemeMode` → `BlocBuilder<ThemeCubit, ThemeMode>` in `main.dart` rebuilds `MaterialApp` with the new `themeMode` → Flutter automatically switches between `AppTheme.lightTheme` and `AppTheme.darkTheme` → all widgets that read `context.colors` re-render with the new palette.
+
 ---
 
 ## 7) Notes and Extension Ideas
@@ -489,3 +497,153 @@ Bottom nav Favorites tab OR favorite-button long press → `MainLayout._onTabCha
 - `duration` in `AudioModel` is display text; if needed, store raw milliseconds for richer filtering/sorting.
 - For very large libraries, pagination or lazy loading can be added at service/repo level.
 - `disposePlayer()` exists for controlled teardown if app architecture later requires explicit cubit disposal.
+
+---
+
+## 8) Dark Mode Toggle Feature (Detailed)
+
+This section explains every layer involved in the dark mode toggle feature.
+
+### 8.1 Color System Refactor
+
+The old static `AppColors` class with `const` color values was replaced by `AppColorsExtension`, a proper Flutter `ThemeExtension<AppColorsExtension>`. This allows two separate palettes to coexist and be selected at runtime.
+
+**File:** `lib/core/theme/app_colors.dart`
+
+Key parts:
+
+1. **`AppColorsExtension` class** — holds all 12 semantic color fields (`background`, `surface`, `card`, `accent`, `accentSoft`, `textPrimary`, `textSecondary`, `textDisabled`, `iconInactive`, `sliderInactive`, `error`, `success`).
+
+2. **Two static palettes:**
+   - `AppColorsExtension.light` — bright background, white surfaces, dark text.
+   - `AppColorsExtension.dark` — dark background (`#121218`), dark surfaces (`#1E1E2A`), light text (`#E8E8F0`).
+
+3. **`copyWith()`** and **`lerp()`** — required by `ThemeExtension` for hot-swap and animated theme transitions. `lerp` smoothly interpolates every color between light and dark.
+
+4. **`AppColorsContext` extension on `BuildContext`** — adds `context.colors` shorthand so widgets access colors via one clean call instead of `Theme.of(context).extension<AppColorsExtension>()!`.
+
+### 8.2 Theme Builder
+
+**File:** `lib/core/theme/app_theme.dart`
+
+A single `_buildTheme(AppColorsExtension colors, Brightness brightness)` factory produces a complete `ThemeData` from a given palette. Both `lightTheme` and `darkTheme` call the same factory with different palettes.
+
+Important: each `ThemeData` registers the palette via `extensions: [colors]`, making it available through `Theme.of(context).extension<AppColorsExtension>()`.
+
+### 8.3 ThemeCubit
+
+**File:** `lib/core/logic/theme_cubit.dart`
+
+```dart
+class ThemeCubit extends Cubit<ThemeMode> {
+  ThemeCubit() : super(ThemeMode.light);
+
+  bool get isDark => state == ThemeMode.dark;
+
+  void toggleTheme() {
+    emit(isDark ? ThemeMode.light : ThemeMode.dark);
+  }
+}
+```
+
+- State type is Flutter's `ThemeMode` enum (`light`, `dark`, `system`).
+- Starts in `ThemeMode.light`.
+- `toggleTheme()` flips between light and dark and emits the new value.
+- `isDark` getter for quick checks.
+
+### 8.4 Wiring in main.dart
+
+```dart
+BlocProvider(
+  create: (_) => ThemeCubit(),
+  child: BlocBuilder<ThemeCubit, ThemeMode>(
+    builder: (context, themeMode) {
+      return MaterialApp(
+        theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: themeMode,
+        home: const MainLayout(),
+      );
+    },
+  ),
+)
+```
+
+- `BlocProvider` creates and provides one `ThemeCubit` at the top of the widget tree.
+- `BlocBuilder` listens to `ThemeCubit` state changes.
+- `MaterialApp.themeMode` is bound to the cubit's state.
+- When `toggleTheme()` is called, `BlocBuilder` rebuilds `MaterialApp` with the new theme mode. Flutter internally picks `theme` or `darkTheme` based on that mode.
+
+### 8.5 Toggle Button in MainLayout
+
+In the AppBar's `actions`, an `IconButton` with `AnimatedSwitcher` displays:
+- Sun icon (`Icons.light_mode_rounded`) when currently in dark mode (tapping switches to light).
+- Moon icon (`Icons.dark_mode_rounded`) when currently in light mode (tapping switches to dark).
+
+The animated transition uses a combined rotation + fade for a polished icon swap.
+
+```dart
+actions: [
+  IconButton(
+    icon: AnimatedSwitcher(
+      duration: const Duration(milliseconds: 300),
+      transitionBuilder: (child, animation) {
+        return RotationTransition(
+          turns: Tween(begin: 0.75, end: 1.0).animate(animation),
+          child: FadeTransition(opacity: animation, child: child),
+        );
+      },
+      child: Icon(
+        themeCubit.isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+        key: ValueKey<bool>(themeCubit.isDark),
+        color: colors.textPrimary,
+      ),
+    ),
+    onPressed: themeCubit.toggleTheme,
+  ),
+],
+```
+
+The `key: ValueKey<bool>(themeCubit.isDark)` triggers `AnimatedSwitcher` to animate when the icon changes.
+
+### 8.6 Widget Migration
+
+Every widget that previously imported `AppColors` and used static constants like `AppColors.textPrimary` was updated to use `context.colors.textPrimary` instead. This means:
+- Colors are resolved from the current `Theme` at build time.
+- When the theme changes, all widgets automatically rebuild with the correct palette.
+
+Widgets updated:
+- `main_layout.dart` (AppBar title, background)
+- `bottom_navagationbar.dart` (surface, shadow, nav colors)
+- `audio_info.dart` (title, artist, favorite button colors)
+- `audio_image.dart` (shadow, fallback card/icon colors)
+- `audio_play_buttons.dart` (play button border, background, side button colors)
+- `all_audio_header.dart` (button accent/surface)
+- `all_audio_list.dart` (list item surface, text, fallback)
+
+### 8.7 Summary Flow
+
+```
+User taps toggle icon
+      │
+      ▼
+ThemeCubit.toggleTheme()
+      │
+      ▼
+emit(ThemeMode.dark)  ◄──or──►  emit(ThemeMode.light)
+      │
+      ▼
+BlocBuilder rebuilds MaterialApp
+      │
+      ▼
+Flutter picks darkTheme or theme
+      │
+      ▼
+AppColorsExtension.dark or .light attached to ThemeData
+      │
+      ▼
+All widgets calling context.colors get new palette
+      │
+      ▼
+UI re-renders with dark or light colors
+```
