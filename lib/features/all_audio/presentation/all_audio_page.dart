@@ -58,8 +58,10 @@ class AllAudioPage extends StatelessWidget {
       );
 
       // Move file from picker cache to permanent storage
-      final permanentPath =
-          p.join(audioDir.path, '${id}_${p.basename(cachedPath)}');
+      final permanentPath = p.join(
+        audioDir.path,
+        '${id}_${p.basename(cachedPath)}',
+      );
       String storedPath = cachedPath;
       try {
         final cachedFile = File(cachedPath);
